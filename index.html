@@ -286,16 +286,6 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
 .search-box:focus{border-color:var(--primary)}
 
 /* ── REST TIMER ──────────────────────────────────────────── */
-#rest-modal{position:fixed;bottom:calc(var(--nav-h) + var(--safe-b));left:50%;transform:translateX(-50%) translateY(0);width:100%;max-width:480px;background:var(--card);border:1px solid var(--border);border-radius:var(--r) var(--r) 0 0;padding:20px 20px calc(20px + var(--safe-b));z-index:200;transition:transform 0.3s cubic-bezier(.4,0,.2,1)}
-#rest-modal.hidden{transform:translateX(-50%) translateY(110%)}
-@media(min-width:768px){#rest-modal{bottom:0;max-width:420px;border-radius:var(--r)}}
-.rest-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-.rest-title{font-size:14px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
-.rest-time-display{font-size:52px;font-weight:900;text-align:center;font-variant-numeric:tabular-nums;letter-spacing:-2px;margin:8px 0 16px}
-.rest-time-display.urgent{color:var(--red)}
-.rest-progress-bar{height:4px;background:var(--card2);border-radius:2px;margin-bottom:16px;overflow:hidden}
-.rest-progress-fill{height:100%;background:var(--primary);border-radius:2px;transition:width 0.9s linear}
-.rest-actions{display:flex;gap:8px}
 
 /* ── MODALS ──────────────────────────────────────────────── */
 #finish-modal,#picker-modal,#manage-modal{position:fixed;inset:0;z-index:300;display:flex;align-items:flex-end}
@@ -398,17 +388,6 @@ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-
     </button>
   </nav>
 
-  <!-- Rest Timer -->
-  <div id="rest-modal" class="hidden">
-    <div class="rest-header"><span class="rest-title">Rest Timer</span><button class="btn btn-sm btn-ghost" onclick="skipRest()">Skip</button></div>
-    <div id="rest-display" class="rest-time-display">1:30</div>
-    <div class="rest-progress-bar"><div id="rest-progress" class="rest-progress-fill" style="width:100%"></div></div>
-    <div class="rest-actions">
-      <button class="btn btn-ghost btn-sm" style="flex:1" onclick="addRestTime(-15)">−15s</button>
-      <button class="btn btn-ghost btn-sm" style="flex:1" onclick="addRestTime(15)">+15s</button>
-      <button class="btn btn-primary btn-sm" style="flex:2" onclick="skipRest()">Done ✓</button>
-    </div>
-  </div>
 
   <!-- Finish Modal -->
   <div id="finish-modal" class="hidden">
@@ -569,7 +548,7 @@ const STORE = {
   key: k  => { const id = getCurrentProfileId(); return `il_${k}_${id||'default'}`; },
   getHistory:   ()  => JSON.parse(localStorage.getItem(STORE.key('history'))  || '[]'),
   saveHistory:  h   => localStorage.setItem(STORE.key('history'),  JSON.stringify(h)),
-  getSettings:  ()  => JSON.parse(localStorage.getItem(STORE.key('settings')) || '{"restTime":90}'),
+  getSettings:  ()  => JSON.parse(localStorage.getItem(STORE.key('settings')) || '{}'),
   saveSettings: s   => localStorage.setItem(STORE.key('settings'), JSON.stringify(s)),
   getPRs:       ()  => JSON.parse(localStorage.getItem(STORE.key('prs'))      || '{}'),
   savePRs:      p   => localStorage.setItem(STORE.key('prs'),      JSON.stringify(p)),
@@ -580,9 +559,6 @@ let currentView     = 'profiles';
 let activeWorkout   = null;
 let workoutTimer    = null;
 let workoutElapsed  = 0;
-let restTimer       = null;
-let restTotal       = 90;
-let restRemaining   = 0;
 let historyDetailId = null;
 let exercisesFilter = 'All';
 let exercisesSearch = '';
@@ -775,7 +751,7 @@ function switchProfile(id) {
   if(activeWorkout){
     closeManageModal();
     if(!confirm('You have an active workout. Switch profiles and discard it?')) return;
-    clearInterval(workoutTimer);clearInterval(restTimer);skipRest();
+    clearInterval(workoutTimer);
     activeWorkout=null;workoutElapsed=0;
   }
   setCurrentProfileId(id);
@@ -1001,7 +977,6 @@ function toggleSet(ei,si) {
   const ts2=activeWorkout.exercises.reduce((t,ex2)=>t+ex2.sets.length,0);
   const ctr=document.querySelector('.workout-topbar span[style*="font-size:12px"]');
   if(ctr)ctr.textContent=`${cs2}/${ts2} sets`;
-  if(set.completed) startRestTimer();
   if(navigator.vibrate) navigator.vibrate(30);
 }
 
@@ -1022,22 +997,6 @@ function removeSet(ei){
 function removeExercise(ei){if(activeWorkout){activeWorkout.exercises.splice(ei,1);renderContent();}}
 
 // ── REST TIMER ────────────────────────────────────────────
-function startRestTimer(){
-  restTotal=STORE.getSettings().restTime||90;restRemaining=restTotal;
-  clearInterval(restTimer);
-  document.getElementById('rest-modal').classList.remove('hidden');
-  updateRestDisplay();
-  restTimer=setInterval(()=>{restRemaining--;updateRestDisplay();if(restRemaining<=0){clearInterval(restTimer);if(navigator.vibrate)navigator.vibrate([200,100,200]);}},1000);
-}
-function updateRestDisplay(){
-  const el=document.getElementById('rest-display'),prog=document.getElementById('rest-progress');
-  if(!el) return;
-  el.textContent=fmtDuration(Math.max(0,restRemaining));
-  el.className='rest-time-display'+(restRemaining<=10?' urgent':'');
-  if(prog) prog.style.width=`${Math.max(0,restRemaining/restTotal*100)}%`;
-}
-function skipRest(){clearInterval(restTimer);document.getElementById('rest-modal').classList.add('hidden');}
-function addRestTime(d){restRemaining=Math.max(0,restRemaining+d);restTotal=Math.max(restTotal,restRemaining);updateRestDisplay();}
 
 // ── FINISH MODAL ──────────────────────────────────────────
 function openFinishModal(){
@@ -1063,7 +1022,7 @@ function closeFinishModal(){document.getElementById('finish-modal').classList.ad
 
 function saveWorkout(){
   if(!activeWorkout) return;
-  clearInterval(workoutTimer);clearInterval(restTimer);skipRest();closeFinishModal();
+  clearInterval(workoutTimer);closeFinishModal();
   const endTime=Date.now();
   const exercises=activeWorkout.exercises.map(ex=>({
     exerciseId:ex.exerciseId,name:ex.name,cat:ex.cat,
@@ -1082,7 +1041,7 @@ function saveWorkout(){
 }
 function discardWorkout(){
   if(!confirm('Discard this workout? All progress will be lost.')) return;
-  clearInterval(workoutTimer);clearInterval(restTimer);skipRest();closeFinishModal();
+  clearInterval(workoutTimer);closeFinishModal();
   activeWorkout=null;workoutElapsed=0;navigate('home');
 }
 
