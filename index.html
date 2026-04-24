@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>IronLog</title>
+<title>Aref+Magda</title>
 <meta name="theme-color" content="#0d0d0f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -11,13 +11,14 @@
 :root {
   --bg:#0d0d0f; --surface:#161619; --surface2:#1e1e23; --surface3:#27272d;
   --border:#2e2e36; --accent:#e8ff47; --accent2:#ff6b35;
-  --text:#f0f0f5; --text2:#8888a0; --text3:#555566;
+  --text:#f0f0f5; --text2:#9898b4; --text3:#6a6a88;
   --green:#4ade80; --red:#f87171;
   --radius:12px; --radius-sm:8px;
   --header-h:60px; --nav-h:46px;
   --safe-b:env(safe-area-inset-bottom,0px);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+button{color:inherit;font-family:inherit}
 html{font-size:16px}
 body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;font-weight:400;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
 body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:0.5}
@@ -95,7 +96,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .template-card:active{transform:scale(0.97)}
 .tc-emoji{font-size:22px;margin-bottom:6px;display:block}
 .tc-name{font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:5px}
-.tc-desc{font-size:0.75rem;color:var(--text3);line-height:1.5}
+.tc-desc{font-size:0.75rem;color:var(--text2);line-height:1.5}
 
 /* ── RESUME BANNER ──────────────────────────────────────── */
 .resume-banner{display:flex;align-items:center;gap:12px;background:rgba(232,255,71,0.07);border:1px solid rgba(232,255,71,0.3);border-radius:var(--radius);padding:14px 16px;cursor:pointer;margin-bottom:16px;transition:background 0.15s}
@@ -282,7 +283,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 <body>
 
 <header id="site-header" class="hidden">
-  <div class="logo">IRON<span>LOG</span></div>
+  <div class="logo">AREF<span>+MAGDA</span></div>
   <div class="header-right">
     <button class="profile-pill" id="profile-pill" onclick="openManageModal()">
       <div class="pp-avatar" id="pp-avatar">💪</div>
@@ -379,6 +380,34 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
   </div>
 </div>
 
+<!-- Create Custom Exercise Modal -->
+<div class="modal-backdrop" id="create-custom-ex-modal" onclick="closeModalOnBackdrop(event,'create-custom-ex-modal')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add Custom Exercise</div>
+      <button class="modal-close" onclick="closeModal('create-custom-ex-modal')">✕</button>
+    </div>
+    <div class="cp-field-label">Exercise Name</div>
+    <input class="cp-name-input" type="text" id="cex-name" placeholder="e.g. Cable Lateral Raise" maxlength="40">
+    <div class="cp-field-label">Category</div>
+    <select class="ex-select" id="cex-cat" style="margin-bottom:20px">
+      <option value="Chest">Chest</option>
+      <option value="Back">Back</option>
+      <option value="Shoulders">Shoulders</option>
+      <option value="Arms">Arms</option>
+      <option value="Legs">Legs</option>
+      <option value="Core">Core</option>
+      <option value="Custom">Custom</option>
+    </select>
+    <div class="cp-field-label">Muscle Group</div>
+    <input class="cp-name-input" type="text" id="cex-muscle" placeholder="e.g. Side Delts" maxlength="30" style="margin-bottom:24px">
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-secondary" style="flex:1" onclick="closeModal('create-custom-ex-modal')">Cancel</button>
+      <button class="btn btn-primary" style="flex:2" onclick="saveCustomExercise()">Add Exercise</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -438,6 +467,8 @@ const EXERCISES = [
   {id:'russian_twist', name:'Russian Twist',             cat:'Core',      muscle:'Obliques'},
   {id:'cable_crunch',  name:'Cable Crunch',              cat:'Core',      muscle:'Abs'},
 ];
+function getAllExercises(){return[...EXERCISES,...STORE.getCustomEx()];}
+function getAllExCats(){return['All',...new Set(getAllExercises().map(e=>e.cat))];}
 const EX_CATS = ['All', ...new Set(EXERCISES.map(e=>e.cat))];
 
 // ── TEMPLATES ─────────────────────────────────────────────
@@ -477,6 +508,8 @@ const STORE = {
   saveHistory:  h => localStorage.setItem(STORE.key('history'), JSON.stringify(h)),
   getPRs:      () => JSON.parse(localStorage.getItem(STORE.key('prs'))||'{}'),
   savePRs:      p => localStorage.setItem(STORE.key('prs'), JSON.stringify(p)),
+  getCustomEx: () => JSON.parse(localStorage.getItem(STORE.key('custom_ex'))||'[]'),
+  saveCustomEx: c => localStorage.setItem(STORE.key('custom_ex'), JSON.stringify(c)),
 };
 
 // ── STATE ─────────────────────────────────────────────────
@@ -497,7 +530,7 @@ function fmtDate(ts){const d=new Date(ts),now=new Date(),days=Math.floor((now-d)
 function fmtVol(v){return v>=1000?(v/1000).toFixed(1)+'k':Math.round(v).toString();}
 function calcVol(exs){return exs.reduce((t,e)=>t+e.sets.reduce((s,set)=>s+(parseFloat(set.weight)||0)*(parseInt(set.reps)||0),0),0);}
 function epley(w,r){return r===1?w:Math.round(w*(1+r/30));}
-function getExDef(id){return EXERCISES.find(e=>e.id===id)||null;}
+function getExDef(id){return getAllExercises().find(e=>e.id===id)||null;}
 function getLastExData(id){const h=STORE.getHistory();for(let i=h.length-1;i>=0;i--){const ex=h[i].exercises.find(e=>e.exerciseId===id);if(ex&&ex.sets.length>0)return ex;}return null;}
 function checkUpdatePR(id,w,r){const prs=STORE.getPRs(),e1=epley(w,r);if(!prs[id]||e1>prs[id].oneRM){prs[id]={weight:w,reps:r,oneRM:e1,date:new Date().toISOString().split('T')[0]};STORE.savePRs(prs);return true;}return false;}
 
@@ -557,7 +590,7 @@ function renderProfiles(){
   return`<div class="profiles-screen" style="position:relative;z-index:1">
     <div class="profiles-hero">
       <div class="profiles-logo">🏋️</div>
-      <div class="profiles-big-title">IRON<span>LOG</span></div>
+      <div class="profiles-big-title">AREF<span>+MAGDA</span></div>
       <div class="profiles-subtitle">${profiles.length>0?'Choose your profile to continue':'Track every rep. Own every PR.'}</div>
     </div>
     ${profiles.length>0?`<div class="profiles-grid">${cards}</div><div style="height:12px"></div>`:''}
@@ -853,15 +886,15 @@ function openAddExModal(){
   setTimeout(()=>document.getElementById('add-ex-search').focus(),200);
 }
 function renderAddExCats(){
-  document.getElementById('add-ex-cats').innerHTML=EX_CATS.map(c=>`<button class="muscle-tab ${c===addExCatFilter?'active':''}" onclick="setAddExCat('${c}')">${c}</button>`).join('');
+  document.getElementById('add-ex-cats').innerHTML=getAllExCats().map(c=>`<button class="muscle-tab ${c===addExCatFilter?'active':''}" onclick="setAddExCat('${c}')">${c}</button>`).join('');
 }
 function setAddExCat(c){addExCatFilter=c;renderAddExCats();renderAddExList();}
 function renderAddExList(){
   const q=(document.getElementById('add-ex-search')?.value||'').toLowerCase();
-  const list=EXERCISES.filter(e=>(addExCatFilter==='All'||e.cat===addExCatFilter)&&(!q||e.name.toLowerCase().includes(q)));
+  const list=getAllExercises().filter(e=>(addExCatFilter==='All'||e.cat===addExCatFilter)&&(!q||e.name.toLowerCase().includes(q)));
   document.getElementById('add-ex-list').innerHTML=list.map(e=>`
     <div class="exercise-item" onclick="addExToWorkout('${e.id}')">
-      <div><div class="ei-name">${e.name}</div><div class="ei-muscle">${e.cat} · ${e.muscle}</div></div>
+      <div><div class="ei-name">${e.name}${e.isCustom?'<span style="font-size:0.65rem;background:rgba(232,255,71,0.1);color:var(--accent);border:1px solid rgba(232,255,71,0.25);padding:1px 6px;border-radius:100px;margin-left:6px;font-weight:600">CUSTOM</span>':''}</div><div class="ei-muscle">${e.cat} · ${e.muscle}</div></div>
       <div class="add-icon">+</div>
     </div>`).join('')||'<div style="color:var(--text3);padding:20px;text-align:center;font-size:0.85rem">No exercises found</div>';
 }
@@ -975,18 +1008,20 @@ function renderProgressChart(){
 function renderExercises(){
   const prs=STORE.getPRs();
   const q=libSearch.toLowerCase();
-  const list=EXERCISES.filter(e=>(libCatFilter==='All'||e.cat===libCatFilter)&&(!q||e.name.toLowerCase().includes(q)||e.muscle.toLowerCase().includes(q)));
+  const list=getAllExercises().filter(e=>(libCatFilter==='All'||e.cat===libCatFilter)&&(!q||e.name.toLowerCase().includes(q)||e.muscle.toLowerCase().includes(q)));
   return`
     <div class="slabel">Exercise Library</div>
     <div class="search-wrap">
       <span class="search-icon">🔍</span>
       <input type="text" class="search-input" placeholder="Search exercises…" value="${libSearch}" oninput="setLibSearch(this.value)">
     </div>
-    <div class="muscle-tabs">${EX_CATS.map(c=>`<button class="muscle-tab ${c===libCatFilter?'active':''}" onclick="setLibCat('${c}')">${c}</button>`).join('')}</div>
+    <div class="muscle-tabs">${getAllExCats().map(c=>`<button class="muscle-tab ${c===libCatFilter?'active':''}" onclick="setLibCat('${c}')">${c}</button>`).join('')}</div>
+    <button class="btn btn-secondary btn-full" style="margin-bottom:12px" onclick="openCreateCustomExModal()">+ Add Custom Exercise</button>
     <div style="display:flex;flex-direction:column;gap:6px">
       ${list.map(e=>{const pr=prs[e.id];return`<div class="exercise-item">
-        <div><div class="ei-name">${e.name}${pr?`<span class="pr-badge">PR ${pr.weight}kg</span>`:''}</div><div class="ei-muscle">${e.cat} · ${e.muscle}</div></div>
+        <div style="flex:1"><div class="ei-name">${e.name}${e.isCustom?'<span style="font-size:0.65rem;background:rgba(232,255,71,0.1);color:var(--accent);border:1px solid rgba(232,255,71,0.25);padding:1px 6px;border-radius:100px;margin-left:6px;font-weight:600">CUSTOM</span>':''}${pr?`<span class="pr-badge">PR ${pr.weight}kg</span>`:''}</div><div class="ei-muscle">${e.cat} · ${e.muscle}</div></div>
         ${pr?`<div class="ei-pr"><div class="ei-pr-val">${pr.weight}kg</div><div class="ei-pr-label">×${pr.reps} reps</div></div>`:''}
+        ${e.isCustom?`<button class="remove-ex-btn" style="margin-left:8px;font-size:0.9rem" onclick="deleteCustomExercise('${e.id}')">🗑️</button>`:''}
       </div>`;}).join('')||'<div style="color:var(--text3);padding:20px;text-align:center;font-size:0.85rem">No exercises found</div>'}
     </div>`;
 }
@@ -1005,6 +1040,34 @@ window.addEventListener('resize',applyResponsive);
 function updateHeaderDate(){
   const el=document.getElementById('header-date');
   if(el) el.textContent=new Date().toLocaleDateString('en-US',{weekday:'long',day:'numeric',month:'long'});
+}
+
+// ── CUSTOM EXERCISES ──────────────────────────────────────
+function openCreateCustomExModal(){
+  document.getElementById('cex-name').value='';
+  document.getElementById('cex-muscle').value='';
+  document.getElementById('cex-cat').value='Custom';
+  openModal('create-custom-ex-modal');
+  setTimeout(()=>document.getElementById('cex-name').focus(),200);
+}
+function saveCustomExercise(){
+  const name=document.getElementById('cex-name')?.value?.trim();
+  const cat=document.getElementById('cex-cat')?.value||'Custom';
+  const muscle=document.getElementById('cex-muscle')?.value?.trim()||cat;
+  if(!name){document.getElementById('cex-name').focus();showToast('Enter an exercise name');return;}
+  const id='custom_'+Date.now();
+  const exs=STORE.getCustomEx();
+  exs.push({id,name,cat,muscle,isCustom:true});
+  STORE.saveCustomEx(exs);
+  closeModal('create-custom-ex-modal');
+  renderContent();
+  showToast(`${name} added to library`);
+}
+function deleteCustomExercise(id){
+  if(!confirm('Remove this custom exercise?')) return;
+  STORE.saveCustomEx(STORE.getCustomEx().filter(e=>e.id!==id));
+  renderContent();
+  showToast('Exercise removed');
 }
 
 // ── INIT ──────────────────────────────────────────────────
