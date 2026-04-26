@@ -617,7 +617,7 @@ async function handleForgotPassword(){
   if(!email){setAuthError('Enter your email address first');return;}
   setAuthError('');
   try{
-    await auth.sendPasswordResetEmail(email);
+    await auth.sendPasswordResetEmail(email,{url:'https://gymstuff.netlify.app'});
     setAuthError('');
     const el=document.getElementById('auth-error');
     if(el){el.textContent='Reset email sent — check your inbox';el.style.color='var(--accent)';}
