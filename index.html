@@ -468,6 +468,7 @@ let psEmoji=PROFILE_EMOJIS[0];
 let psIsFirst=false;
 let authMode='signin';
 let authError='';
+let resetOobCode='';
 
 // ── FIRESTORE ─────────────────────────────────────────────
 function syncToFirestore(){
@@ -568,6 +569,22 @@ function renderLoading(){
 
 // ── AUTH VIEW ─────────────────────────────────────────────
 function renderAuth(){
+  if(authMode==='resetpassword'){
+    return`<div class="auth-screen">
+      <div class="auth-hero">
+        <div class="auth-logo">🏋️</div>
+        <div class="auth-big-title">AREF<span>+MAGDA</span></div>
+        <div class="auth-subtitle">Set a new password</div>
+      </div>
+      <div class="auth-form">
+        <input type="password" class="auth-input" id="reset-pw1" placeholder="New password (min 6 chars)" onkeydown="if(event.key==='Enter')document.getElementById('reset-pw2').focus()">
+        <input type="password" class="auth-input" id="reset-pw2" placeholder="Confirm new password" onkeydown="if(event.key==='Enter')handleConfirmReset()">
+        <div class="auth-error" id="auth-error">${authError}</div>
+        <button class="btn btn-primary btn-full" onclick="handleConfirmReset()">Set Password →</button>
+        <div style="text-align:center;margin-top:14px"><button onclick="setAuthMode('signin')" style="background:none;border:none;color:var(--text2);font-size:0.82rem;cursor:pointer;text-decoration:underline;font-family:'Barlow',sans-serif">Back to sign in</button></div>
+      </div>
+    </div>`;
+  }
   return`<div class="auth-screen">
     <div class="auth-hero">
       <div class="auth-logo">🏋️</div>
@@ -617,10 +634,25 @@ async function handleForgotPassword(){
   if(!email){setAuthError('Enter your email address first');return;}
   setAuthError('');
   try{
-    await auth.sendPasswordResetEmail(email,{url:'https://gymstuff.netlify.app'});
-    setAuthError('');
+    await auth.sendPasswordResetEmail(email,{url:'https://gymstuff.netlify.app',handleCodeInApp:true});
     const el=document.getElementById('auth-error');
     if(el){el.textContent='Reset email sent — check your inbox';el.style.color='var(--accent)';}
+  }catch(e){setAuthError(getAuthErrorMsg(e.code));}
+}
+async function handleConfirmReset(){
+  const pw1=document.getElementById('reset-pw1')?.value;
+  const pw2=document.getElementById('reset-pw2')?.value;
+  if(!pw1||!pw2){setAuthError('Enter and confirm your new password');return;}
+  if(pw1.length<6){setAuthError('Password must be at least 6 characters');return;}
+  if(pw1!==pw2){setAuthError('Passwords do not match');return;}
+  setAuthError('');
+  try{
+    await auth.confirmPasswordReset(resetOobCode,pw1);
+    resetOobCode='';
+    window.history.replaceState({},'','/');
+    setAuthMode('signin');
+    const el=document.getElementById('auth-error');
+    if(el){el.textContent='Password updated — sign in with your new password';el.style.color='var(--accent)';}
   }catch(e){setAuthError(getAuthErrorMsg(e.code));}
 }
 async function handleSignOut(){
@@ -1028,8 +1060,15 @@ window.addEventListener('resize',applyResponsive);
 function init(){
   updateHeaderDate();
   applyResponsive();
+  const params=new URLSearchParams(window.location.search);
+  if(params.get('mode')==='resetPassword'&&params.get('oobCode')){
+    resetOobCode=params.get('oobCode');
+    authMode='resetpassword';
+    navigate('auth');
+  }
   auth.onAuthStateChanged(async user=>{
     currentUser=user;
+    if(resetOobCode){return;}
     if(!user){
       userData={profile:{name:'',emoji:'💪',color:'#e8ff47'},history:[],prs:{},custom_exercises:[]};
       authMode='signin';authError='';
