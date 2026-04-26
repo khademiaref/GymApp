@@ -585,6 +585,7 @@ function renderAuth(){
       <button class="btn btn-primary btn-full" onclick="${authMode==='signin'?'handleSignIn()':'handleSignUp()'}">
         ${authMode==='signin'?'Sign In →':'Create Account →'}
       </button>
+      ${authMode==='signin'?`<div style="text-align:center;margin-top:14px"><button onclick="handleForgotPassword()" style="background:none;border:none;color:var(--text2);font-size:0.82rem;cursor:pointer;text-decoration:underline;font-family:'Barlow',sans-serif">Forgot password?</button></div>`:''}
     </div>
   </div>`;
 }
@@ -610,6 +611,17 @@ async function handleSignUp(){
   setAuthError('');
   try{await auth.createUserWithEmailAndPassword(email,pw);}
   catch(e){setAuthError(getAuthErrorMsg(e.code));}
+}
+async function handleForgotPassword(){
+  const email=document.getElementById('auth-email')?.value?.trim();
+  if(!email){setAuthError('Enter your email address first');return;}
+  setAuthError('');
+  try{
+    await auth.sendPasswordResetEmail(email);
+    setAuthError('');
+    const el=document.getElementById('auth-error');
+    if(el){el.textContent='Reset email sent — check your inbox';el.style.color='var(--accent)';}
+  }catch(e){setAuthError(getAuthErrorMsg(e.code));}
 }
 async function handleSignOut(){
   if(activeWorkout&&!confirm('Sign out and discard current workout?'))return;
